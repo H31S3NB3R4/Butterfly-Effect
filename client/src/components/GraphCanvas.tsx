@@ -24,8 +24,12 @@ type Props = {
 export function GraphCanvas({ graph, selectedNodeId, onSelectNode }: Props) {
   const elements = useMemo(() => layoutGraph(graph), [graph])
   const nodes = useMemo(
-    () => elements.nodes.map((node) => ({ ...node, selected: node.id === selectedNodeId })),
-    [elements.nodes, selectedNodeId],
+    () => elements.nodes.map((node) => ({
+      ...node,
+      selected: node.id === selectedNodeId,
+      data: { ...node.data, onSelect: onSelectNode },
+    })),
+    [elements.nodes, selectedNodeId, onSelectNode],
   )
   const onNodeClick: NodeMouseHandler = (_event, node) => onSelectNode(node.id)
 
@@ -43,11 +47,15 @@ export function GraphCanvas({ graph, selectedNodeId, onSelectNode }: Props) {
         maxZoom={1.5}
         nodesDraggable={false}
         nodesConnectable={false}
+        nodesFocusable={false}
+        edgesFocusable={false}
+        deleteKeyCode={null}
         aria-label="Causal consequence graph"
       >
         <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="#1e293b" />
         <Controls position="bottom-left" showInteractive={false} />
         <MiniMap
+          className="hidden sm:block"
           position="bottom-right"
           pannable
           zoomable

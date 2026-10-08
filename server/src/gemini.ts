@@ -6,7 +6,7 @@ import { expansionCandidatesSchema, getExpansionContext, mergeExpansion } from '
 import { analyzedScenarioGraphSchema } from './graph-validation.js'
 import type { ScenarioGraph } from './schemas.js'
 
-const DEFAULT_MODEL = 'gemini-2.5-flash'
+const DEFAULT_MODEL = 'gemini-3.5-flash'
 const REQUEST_TIMEOUT_MS = 45_000
 
 const systemInstruction = `You create bounded causal graphs for hypothetical thought experiments.

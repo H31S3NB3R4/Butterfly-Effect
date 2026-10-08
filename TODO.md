@@ -60,15 +60,17 @@
 **Gate:** Two successive real expansions work without broken edges or lost nodes.
 
 ## Phase 5 — Small but valuable polish
-- [ ] Add LocalStorage save/load/delete for graphs.
-- [ ] Add new scenario/reset action.
-- [ ] Improve graph spacing and readability on normal laptop screens.
-- [ ] Add subtle node transitions and selection emphasis.
-- [ ] Add accessible labels, visible focus, and practical keyboard controls.
-- [ ] Verify mobile sidebar/drawer behavior.
+- [x] Add LocalStorage save/load/delete for graphs.
+- [x] Add new scenario/reset action.
+- [x] Improve graph spacing and readability on normal laptop screens.
+- [x] Add subtle node transitions and selection emphasis.
+- [x] Add accessible labels, visible focus, and practical keyboard controls.
+- [x] Verify mobile sidebar/drawer behavior.
 - [ ] Optional: export graph JSON.
 
 **Gate:** Refresh and reopen preserves a generated, expanded scenario.
+
+Verified in the browser with a real Gemini response: 12 nodes initially, 15 after expansion, and 15 after refresh and reopening from Recent explorations.
 
 ## Phase 6 — QA and submission readiness
 - [ ] Test all three PRD sample scenarios using real AI responses.

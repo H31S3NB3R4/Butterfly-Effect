@@ -7,16 +7,32 @@ type Props = {
   error: string | null
   success: string | null
   onExpand: () => void
+  mobileOpen: boolean
+  onToggleMobile: () => void
 }
 
-export function Inspector({ graph, selectedNodeId, expanding, error, success, onExpand }: Props) {
+export function Inspector({ graph, selectedNodeId, expanding, error, success, onExpand, mobileOpen, onToggleMobile }: Props) {
   const node = graph.nodes.find((item) => item.id === selectedNodeId) ?? graph.nodes[0]
   const incoming = graph.edges.filter((edge) => edge.target === node.id)
   const atDepthLimit = node.depth >= 5
   const atGraphLimit = graph.nodes.length > 33
 
   return (
-    <aside className="w-full shrink-0 overflow-y-auto border-t border-white/10 bg-[#0c111c] p-6 lg:h-full lg:w-[360px] lg:border-l lg:border-t-0">
+    <aside
+      id="consequence-inspector"
+      className={`fixed inset-x-0 bottom-0 z-20 w-full shrink-0 rounded-t-2xl border-t border-white/15 bg-[#0c111c] px-5 pb-6 shadow-2xl shadow-black/60 transition-[height] duration-200 lg:static lg:h-full lg:w-[360px] lg:overflow-y-auto lg:rounded-none lg:border-l lg:border-t-0 lg:p-6 lg:shadow-none ${mobileOpen ? 'h-[75dvh] overflow-y-auto' : 'h-[64px] overflow-hidden'}`}
+    >
+      <button
+        type="button"
+        onClick={onToggleMobile}
+        aria-controls="inspector-content"
+        aria-expanded={mobileOpen}
+        className="sticky top-0 flex h-16 w-full items-center justify-between gap-3 bg-[#0c111c] text-left text-sm font-semibold text-slate-200 focus-visible:outline-2 focus-visible:outline-violet-400 lg:hidden"
+      >
+        <span className="truncate">Details: {node.title}</span>
+        <span aria-hidden="true">{mobileOpen ? '⌄' : '⌃'}</span>
+      </button>
+      <div id="inspector-content">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300">Consequence details</p>
       <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">{node.title}</h2>
       <div className="mt-4 flex flex-wrap gap-2 text-xs capitalize">
@@ -71,6 +87,7 @@ export function Inspector({ graph, selectedNodeId, expanding, error, success, on
           </button>
         </div>
       )}
+      </div>
     </aside>
   )
 }

@@ -49,9 +49,9 @@ body {
 }
 
 .react-flow__controls-button {
-  color: #cbd5e1;
-  background: #111827;
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1 !important;
+  background: #111827 !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 .react-flow__controls-button:hover {
@@ -67,6 +67,20 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.75rem;
   background: #111827;
+}
+
+.react-flow__node:focus-visible {
+  border-radius: 1rem;
+  outline: 3px solid #c4b5fd;
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @keyframes spin {

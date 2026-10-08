@@ -3,11 +3,27 @@ import { useState } from 'react'
 import { analyzeScenario, expandScenario } from './api/scenarios'
 import { GraphCanvas } from './components/GraphCanvas'
 import { Inspector } from './components/Inspector'
+import { SavedScenarios } from './components/SavedScenarios'
 import { ScenarioComposer } from './components/ScenarioComposer'
-import type { ScenarioGraph } from './types/graph'
+import {
+  closeGraph,
+  deleteSavedGraph,
+  emptyLibrary,
+  getActiveGraph,
+  openSavedGraph,
+  persistLibrary,
+  readLibrary,
+  saveGraph,
+  type ScenarioLibrary,
+} from './storage/scenarios'
+
+const loadInitialLibrary = (): ScenarioLibrary => {
+  try { return readLibrary() } catch { return emptyLibrary() }
+}
 
 function App() {
-  const [graph, setGraph] = useState<ScenarioGraph | null>(null)
+  const [library, setLibrary] = useState(loadInitialLibrary)
+  const graph = getActiveGraph(library)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [lastScenario, setLastScenario] = useState('')
   const [loading, setLoading] = useState(false)
@@ -15,6 +31,18 @@ function App() {
   const [expandingNodeId, setExpandingNodeId] = useState<string | null>(null)
   const [expansionError, setExpansionError] = useState<string | null>(null)
   const [expansionSuccess, setExpansionSuccess] = useState<string | null>(null)
+  const [storageWarning, setStorageWarning] = useState<string | null>(null)
+  const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false)
+
+  const updateLibrary = (next: ScenarioLibrary) => {
+    setLibrary(next)
+    try {
+      persistLibrary(next)
+      setStorageWarning(null)
+    } catch {
+      setStorageWarning('Browser storage is unavailable. This exploration may not survive a refresh.')
+    }
+  }
 
   const explore = async (scenario: string) => {
     setLoading(true)
@@ -22,8 +50,9 @@ function App() {
     setLastScenario(scenario)
     try {
       const result = await analyzeScenario(scenario)
-      setGraph(result)
+      updateLibrary(saveGraph(library, result))
       setSelectedNodeId(result.nodes.find((node) => node.depth === 0)?.id ?? result.nodes[0]?.id ?? null)
+      setMobileInspectorOpen(false)
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Something went wrong. Please try again.')
     } finally {
@@ -32,17 +61,29 @@ function App() {
   }
 
   const reset = () => {
-    setGraph(null)
+    updateLibrary(closeGraph(library))
     setSelectedNodeId(null)
     setError(null)
     setExpansionError(null)
     setExpansionSuccess(null)
+    setMobileInspectorOpen(false)
   }
+
+  const openSaved = (id: string) => {
+    updateLibrary(openSavedGraph(library, id))
+    setSelectedNodeId(null)
+    setExpansionError(null)
+    setExpansionSuccess(null)
+    setMobileInspectorOpen(false)
+  }
+
+  const deleteSaved = (id: string) => updateLibrary(deleteSavedGraph(library, id))
 
   const selectNode = (nodeId: string) => {
     setSelectedNodeId(nodeId)
     setExpansionError(null)
     setExpansionSuccess(null)
+    setMobileInspectorOpen(true)
   }
 
   const expandBranch = async () => {
@@ -53,7 +94,7 @@ function App() {
     try {
       const expandedGraph = await expandScenario(graph, selectedNodeId)
       const addedCount = expandedGraph.nodes.length - graph.nodes.length
-      setGraph(expandedGraph)
+      updateLibrary(saveGraph(library, expandedGraph, library.activeId))
       setExpansionSuccess(`Added ${addedCount} new downstream consequences.`)
     } catch (requestError) {
       setExpansionError(requestError instanceof Error ? requestError.message : 'This branch could not be expanded. Please retry.')
@@ -74,6 +115,8 @@ function App() {
           <div className="mx-auto mt-10 max-w-2xl">
             <ScenarioComposer loading={loading} error={error} initialScenario={lastScenario} onSubmit={explore} />
           </div>
+          <SavedScenarios records={library.records} onOpen={openSaved} onDelete={deleteSaved} />
+          {storageWarning && <p role="status" className="mx-auto mt-4 max-w-2xl text-sm text-amber-200">{storageWarning}</p>}
           <p className="mx-auto mt-5 max-w-xl text-xs leading-5 text-slate-500">AI-generated consequences are conditional thought experiments—not forecasts, verified facts, or calibrated probabilities.</p>
         </section>
       </main>
@@ -90,7 +133,7 @@ function App() {
             <h1 className="truncate text-sm font-medium text-slate-300">{graph.scenario}</h1>
           </div>
         </div>
-        <button type="button" onClick={reset} className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400">
+        <button type="button" onClick={reset} disabled={Boolean(expandingNodeId)} className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400 disabled:opacity-50">
           New scenario
         </button>
       </header>
@@ -98,6 +141,7 @@ function App() {
       <div className="border-b border-white/10 bg-violet-400/[0.05] px-4 py-2 text-center text-xs text-slate-400">
         A hypothetical exploration generated by AI. Select a node to inspect its reasoning and assumptions.
       </div>
+      {storageWarning && <p role="status" className="border-b border-amber-300/20 bg-amber-300/10 px-4 py-2 text-center text-xs text-amber-200">{storageWarning}</p>}
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <section className="min-h-[560px] min-w-0 flex-1 lg:min-h-0" aria-label="Graph explorer">
@@ -110,6 +154,8 @@ function App() {
           error={expansionError}
           success={expansionSuccess}
           onExpand={expandBranch}
+          mobileOpen={mobileInspectorOpen}
+          onToggleMobile={() => setMobileInspectorOpen((open) => !open)}
         />
       </div>
     </main>

@@ -3,16 +3,16 @@ import { MarkerType, type Edge, type Node } from '@xyflow/react'
 
 import type { ConsequenceNode, ScenarioGraph } from '../types/graph'
 
-export type ConsequenceNodeData = { consequence: ConsequenceNode }
+export type ConsequenceNodeData = { consequence: ConsequenceNode; onSelect?: (id: string) => void }
 export type ConsequenceFlowNode = Node<ConsequenceNodeData, 'consequence'>
 
-const NODE_WIDTH = 236
-const NODE_HEIGHT = 132
+const NODE_WIDTH = 220
+const NODE_HEIGHT = 124
 
 export const layoutGraph = (graph: ScenarioGraph) => {
   const layout = new dagre.graphlib.Graph()
   layout.setDefaultEdgeLabel(() => ({}))
-  layout.setGraph({ rankdir: 'TB', ranksep: 96, nodesep: 46, marginx: 40, marginy: 40 })
+  layout.setGraph({ rankdir: 'TB', ranksep: 68, nodesep: 22, marginx: 24, marginy: 24 })
 
   const sortedNodes = [...graph.nodes].sort((a, b) => a.depth - b.depth || a.id.localeCompare(b.id))
   const sortedEdges = [...graph.edges].sort((a, b) => a.id.localeCompare(b.id))
@@ -26,6 +26,7 @@ export const layoutGraph = (graph: ScenarioGraph) => {
     return {
       id: consequence.id,
       type: 'consequence',
+      ariaLabel: `${consequence.title}, depth ${consequence.depth}, ${consequence.impact} impact, ${consequence.uncertainty} uncertainty. Press Enter for details.`,
       position: {
         x: position.x - NODE_WIDTH / 2,
         y: position.y - NODE_HEIGHT / 2,
