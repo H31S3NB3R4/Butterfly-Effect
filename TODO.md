@@ -37,14 +37,14 @@
 **Gate:** API returns a connected, valid, non-hardcoded graph for at least two distinct scenarios.
 
 ## Phase 3 — Functional graph UI
-- [ ] Build scenario composer with validation and three example chips.
-- [ ] Add request loading/errors/retry feedback.
-- [ ] Render generated nodes/edges using `@xyflow/react`.
-- [ ] Apply deterministic Dagre layout by depth.
-- [ ] Add directional arrows, zoom, pan, fit view and controls.
-- [ ] Implement details inspector with explanation, assumptions, impact and uncertainty.
-- [ ] Include visible note that graphs are hypothetical explorations, not predictions.
-- [ ] Test on desktop and a narrow mobile viewport.
+- [x] Build scenario composer with validation and three example chips.
+- [x] Add request loading/errors/retry feedback.
+- [x] Render generated nodes/edges using `@xyflow/react`.
+- [x] Apply deterministic Dagre layout by depth.
+- [x] Add directional arrows, zoom, pan, fit view and controls.
+- [x] Implement details inspector with explanation, assumptions, impact and uncertainty.
+- [x] Include visible note that graphs are hypothetical explorations, not predictions.
+- [x] Test on desktop and a narrow mobile viewport.
 
 **Gate:** Anyone can enter a new scenario, inspect connected nodes, and navigate the graph.
 

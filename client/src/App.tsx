@@ -1,45 +1,82 @@
+import { useState } from 'react'
+
+import { analyzeScenario } from './api/scenarios'
+import { GraphCanvas } from './components/GraphCanvas'
+import { Inspector } from './components/Inspector'
+import { ScenarioComposer } from './components/ScenarioComposer'
+import type { ScenarioGraph } from './types/graph'
+
 function App() {
-  return (
-    <main className="relative isolate flex min-h-screen items-center justify-center overflow-hidden px-6 py-16">
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(124,58,237,0.18),_transparent_40%)]" />
-      <section className="w-full max-w-3xl text-center">
-        <div className="mx-auto mb-8 flex h-16 w-16 items-center justify-center rounded-2xl border border-violet-400/25 bg-violet-400/10 text-3xl shadow-2xl shadow-violet-950/50">
-          🦋
-        </div>
-        <p className="mb-4 text-sm font-semibold uppercase tracking-[0.28em] text-violet-300">
-          Butterfly Effect
-        </p>
-        <h1 className="text-balance text-5xl font-semibold tracking-tight text-white sm:text-7xl">
-          One change. Infinite possibilities.
-        </h1>
-        <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-          Explore how a single “what if?” could ripple through connected systems.
-          This foundation is ready for the causal graph experience.
-        </p>
-        <div className="mx-auto mt-10 max-w-xl rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-left shadow-2xl shadow-black/20 backdrop-blur">
-          <label htmlFor="scenario" className="text-sm font-medium text-slate-200">
-            What would you like to explore?
-          </label>
-          <div className="mt-3 flex gap-3">
-            <input
-              id="scenario"
-              disabled
-              placeholder="What if…"
-              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-300 outline-none placeholder:text-slate-600"
-            />
-            <button
-              type="button"
-              disabled
-              className="rounded-xl bg-violet-500 px-5 py-3 font-semibold text-white opacity-60"
-            >
-              Explore
-            </button>
+  const [graph, setGraph] = useState<ScenarioGraph | null>(null)
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [lastScenario, setLastScenario] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const explore = async (scenario: string) => {
+    setLoading(true)
+    setError(null)
+    setLastScenario(scenario)
+    try {
+      const result = await analyzeScenario(scenario)
+      setGraph(result)
+      setSelectedNodeId(result.nodes.find((node) => node.depth === 0)?.id ?? result.nodes[0]?.id ?? null)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Something went wrong. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const reset = () => {
+    setGraph(null)
+    setSelectedNodeId(null)
+    setError(null)
+  }
+
+  if (!graph) {
+    return (
+      <main className="relative isolate flex min-h-screen items-center justify-center overflow-hidden px-5 py-12">
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_-10%,_rgba(124,58,237,0.25),_transparent_38%),radial-gradient(circle_at_15%_75%,_rgba(8,145,178,0.1),_transparent_28%)]" />
+        <section className="w-full max-w-3xl text-center">
+          <div className="mx-auto mb-7 flex h-16 w-16 items-center justify-center rounded-2xl border border-violet-400/25 bg-violet-400/10 text-3xl shadow-2xl shadow-violet-950/50">🦋</div>
+          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.28em] text-violet-300">Butterfly Effect</p>
+          <h1 className="text-balance text-5xl font-semibold tracking-[-0.04em] text-white sm:text-7xl">One change. Infinite possibilities.</h1>
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-300">Map the immediate, secondary, and long-term ripples of a hypothetical change with Gemini.</p>
+          <div className="mx-auto mt-10 max-w-2xl">
+            <ScenarioComposer loading={loading} error={error} initialScenario={lastScenario} onSubmit={explore} />
           </div>
-          <p className="mt-3 text-xs text-slate-500">
-            Scenario generation arrives in the next implementation phase.
-          </p>
+          <p className="mx-auto mt-5 max-w-xl text-xs leading-5 text-slate-500">AI-generated consequences are conditional thought experiments—not forecasts, verified facts, or calibrated probabilities.</p>
+        </section>
+      </main>
+    )
+  }
+
+  return (
+    <main className="flex min-h-screen flex-col bg-[#070a12] text-slate-100 lg:h-screen lg:overflow-hidden">
+      <header className="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 bg-[#0a0e18]/95 px-4 py-3 sm:px-6">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-400/10">🦋</div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300">Butterfly Effect</p>
+            <h1 className="truncate text-sm font-medium text-slate-300">{graph.scenario}</h1>
+          </div>
         </div>
-      </section>
+        <button type="button" onClick={reset} className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400">
+          New scenario
+        </button>
+      </header>
+
+      <div className="border-b border-white/10 bg-violet-400/[0.05] px-4 py-2 text-center text-xs text-slate-400">
+        A hypothetical exploration generated by AI. Select a node to inspect its reasoning and assumptions.
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <section className="min-h-[560px] min-w-0 flex-1 lg:min-h-0" aria-label="Graph explorer">
+          <GraphCanvas graph={graph} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} />
+        </section>
+        <Inspector graph={graph} selectedNodeId={selectedNodeId} />
+      </div>
     </main>
   )
 }

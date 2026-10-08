@@ -27,6 +27,52 @@ body {
   min-height: 100vh;
 }
 
+::selection {
+  color: white;
+  background: rgba(139, 92, 246, 0.55);
+}
+
+.loading-orbit {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: white;
+  border-radius: 999px;
+  animation: spin 0.8s linear infinite;
+}
+
+.react-flow__controls {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  box-shadow: none;
+}
+
+.react-flow__controls-button {
+  color: #cbd5e1;
+  background: #111827;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.react-flow__controls-button:hover {
+  background: #1f2937;
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+.react-flow__minimap {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  background: #111827;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 button,
 input {
   font: inherit;
