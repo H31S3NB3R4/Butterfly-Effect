@@ -49,13 +49,13 @@
 **Gate:** Anyone can enter a new scenario, inspect connected nodes, and navigate the graph.
 
 ## Phase 4 — Branch expansion
-- [ ] Implement `POST /api/expand` using selected node + current validated graph.
-- [ ] AI generates 2–3 non-duplicate consequences causally linked to selected node.
-- [ ] Merge on server; allocate safe IDs and validate full merged graph.
-- [ ] Enforce max 35 nodes and max depth 5.
-- [ ] Wire Expand button to backend and update graph in place.
-- [ ] Show progress, success feedback, and recoverable error states.
-- [ ] Test expansion twice, leaf expansion, and node/depth limits.
+- [x] Implement `POST /api/expand` using selected node + current validated graph.
+- [x] AI generates 2–3 non-duplicate consequences causally linked to selected node.
+- [x] Merge on server; allocate safe IDs and validate full merged graph.
+- [x] Enforce max 35 nodes and max depth 5.
+- [x] Wire Expand button to backend and update graph in place.
+- [x] Show progress, success feedback, and recoverable error states.
+- [x] Test expansion twice, leaf expansion, and node/depth limits.
 
 **Gate:** Two successive real expansions work without broken edges or lost nodes.
 

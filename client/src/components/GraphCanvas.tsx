@@ -32,6 +32,7 @@ export function GraphCanvas({ graph, selectedNodeId, onSelectNode }: Props) {
   return (
     <div className="h-[560px] min-h-[560px] w-full bg-[#070a12] lg:h-full lg:min-h-0">
       <ReactFlow
+        key={graph.nodes.length}
         nodes={nodes}
         edges={elements.edges}
         nodeTypes={nodeTypes}

@@ -5,6 +5,9 @@ export type ErrorCode =
   | 'AI_TIMEOUT'
   | 'AI_INVALID_RESPONSE'
   | 'AI_UNAVAILABLE'
+  | 'INVALID_SELECTION'
+  | 'GRAPH_LIMIT_REACHED'
+  | 'DEPTH_LIMIT_REACHED'
 
 export class AppError extends Error {
   constructor(

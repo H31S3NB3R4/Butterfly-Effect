@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { analyzeScenario } from './api/scenarios'
+import { analyzeScenario, expandScenario } from './api/scenarios'
 import { GraphCanvas } from './components/GraphCanvas'
 import { Inspector } from './components/Inspector'
 import { ScenarioComposer } from './components/ScenarioComposer'
@@ -12,6 +12,9 @@ function App() {
   const [lastScenario, setLastScenario] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [expandingNodeId, setExpandingNodeId] = useState<string | null>(null)
+  const [expansionError, setExpansionError] = useState<string | null>(null)
+  const [expansionSuccess, setExpansionSuccess] = useState<string | null>(null)
 
   const explore = async (scenario: string) => {
     setLoading(true)
@@ -32,6 +35,31 @@ function App() {
     setGraph(null)
     setSelectedNodeId(null)
     setError(null)
+    setExpansionError(null)
+    setExpansionSuccess(null)
+  }
+
+  const selectNode = (nodeId: string) => {
+    setSelectedNodeId(nodeId)
+    setExpansionError(null)
+    setExpansionSuccess(null)
+  }
+
+  const expandBranch = async () => {
+    if (!graph || !selectedNodeId || expandingNodeId) return
+    setExpandingNodeId(selectedNodeId)
+    setExpansionError(null)
+    setExpansionSuccess(null)
+    try {
+      const expandedGraph = await expandScenario(graph, selectedNodeId)
+      const addedCount = expandedGraph.nodes.length - graph.nodes.length
+      setGraph(expandedGraph)
+      setExpansionSuccess(`Added ${addedCount} new downstream consequences.`)
+    } catch (requestError) {
+      setExpansionError(requestError instanceof Error ? requestError.message : 'This branch could not be expanded. Please retry.')
+    } finally {
+      setExpandingNodeId(null)
+    }
   }
 
   if (!graph) {
@@ -73,9 +101,16 @@ function App() {
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <section className="min-h-[560px] min-w-0 flex-1 lg:min-h-0" aria-label="Graph explorer">
-          <GraphCanvas graph={graph} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} />
+          <GraphCanvas graph={graph} selectedNodeId={selectedNodeId} onSelectNode={selectNode} />
         </section>
-        <Inspector graph={graph} selectedNodeId={selectedNodeId} />
+        <Inspector
+          graph={graph}
+          selectedNodeId={selectedNodeId}
+          expanding={expandingNodeId === selectedNodeId}
+          error={expansionError}
+          success={expansionSuccess}
+          onExpand={expandBranch}
+        />
       </div>
     </main>
   )

@@ -26,7 +26,7 @@ export const causalEdgeSchema = z.object({
   id: z.string().trim().min(1).max(64),
   source: z.string().trim().min(1).max(64),
   target: z.string().trim().min(1).max(64),
-  explanation: z.string().trim().min(1).max(280),
+  explanation: z.string().trim().min(1).max(600),
 })
 
 export const scenarioGraphShapeSchema = z.object({

@@ -23,12 +23,23 @@ export class ApiError extends Error {
 }
 
 export const analyzeScenario = async (scenario: string): Promise<ScenarioGraph> => {
+  return requestGraph('/api/analyze', { scenario })
+}
+
+export const expandScenario = async (
+  graph: ScenarioGraph,
+  selectedNodeId: string,
+): Promise<ScenarioGraph> => {
+  return requestGraph('/api/expand', { graph, selectedNodeId })
+}
+
+const requestGraph = async (path: string, body: unknown): Promise<ScenarioGraph> => {
   let response: Response
   try {
-    response = await fetch('/api/analyze', {
+    response = await fetch(path, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scenario }),
+      body: JSON.stringify(body),
     })
   } catch {
     throw new ApiError('The server could not be reached. Check that it is running and try again.', 'NETWORK_ERROR', 0)

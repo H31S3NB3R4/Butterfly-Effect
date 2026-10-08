@@ -3,11 +3,17 @@ import type { ScenarioGraph } from '../types/graph'
 type Props = {
   graph: ScenarioGraph
   selectedNodeId: string | null
+  expanding: boolean
+  error: string | null
+  success: string | null
+  onExpand: () => void
 }
 
-export function Inspector({ graph, selectedNodeId }: Props) {
+export function Inspector({ graph, selectedNodeId, expanding, error, success, onExpand }: Props) {
   const node = graph.nodes.find((item) => item.id === selectedNodeId) ?? graph.nodes[0]
   const incoming = graph.edges.filter((edge) => edge.target === node.id)
+  const atDepthLimit = node.depth >= 5
+  const atGraphLimit = graph.nodes.length > 33
 
   return (
     <aside className="w-full shrink-0 overflow-y-auto border-t border-white/10 bg-[#0c111c] p-6 lg:h-full lg:w-[360px] lg:border-l lg:border-t-0">
@@ -44,9 +50,26 @@ export function Inspector({ graph, selectedNodeId }: Props) {
         Impact and uncertainty are qualitative AI labels, not measured probabilities.
       </div>
       {node.depth > 0 && (
-        <button type="button" disabled className="mt-4 w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-500">
-          Expand this branch · Phase 4
-        </button>
+        <div className="mt-4">
+          {(error || success) && (
+            <p role="status" className={`mb-3 rounded-xl border px-3 py-2.5 text-xs leading-5 ${error ? 'border-rose-400/20 bg-rose-400/10 text-rose-200' : 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'}`}>
+              {error ?? success}
+            </p>
+          )}
+          {(atDepthLimit || atGraphLimit) && (
+            <p className="mb-3 text-xs leading-5 text-amber-200/70">
+              {atDepthLimit ? 'This branch has reached the maximum depth of 5.' : 'The graph needs room for at least two new consequences.'}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={onExpand}
+            disabled={expanding || atDepthLimit || atGraphLimit}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-300 disabled:cursor-not-allowed disabled:bg-white/5 disabled:text-slate-500"
+          >
+            {expanding ? <><span className="loading-orbit" /> Expanding branch…</> : error ? 'Retry expansion' : 'Expand this branch'}
+          </button>
+        </div>
       )}
     </aside>
   )

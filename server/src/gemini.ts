@@ -1,6 +1,8 @@
 import { ApiError, GoogleGenAI } from '@google/genai'
+import { z } from 'zod'
 
 import { AppError } from './errors.js'
+import { expansionCandidatesSchema, getExpansionContext, mergeExpansion } from './expansion.js'
 import { analyzedScenarioGraphSchema } from './graph-validation.js'
 import type { ScenarioGraph } from './schemas.js'
 
@@ -64,6 +66,41 @@ const responseJsonSchema = {
   },
 }
 
+const expansionResponseJsonSchema = {
+  type: 'object',
+  required: ['consequences'],
+  properties: {
+    consequences: {
+      type: 'array',
+      minItems: 2,
+      maxItems: 3,
+      items: {
+        type: 'object',
+        required: ['title', 'description', 'category', 'impact', 'uncertainty', 'assumptions', 'explanation'],
+        properties: {
+          title: { type: 'string' },
+          description: { type: 'string' },
+          category: {
+            type: 'string',
+            enum: ['economic', 'social', 'technology', 'environment', 'political', 'other'],
+          },
+          impact: { type: 'string', enum: ['low', 'medium', 'high'] },
+          uncertainty: { type: 'string', enum: ['lower', 'moderate', 'higher'] },
+          assumptions: { type: 'array', items: { type: 'string' } },
+          explanation: { type: 'string' },
+        },
+      },
+    },
+  },
+}
+
+const expansionSystemInstruction = `Expand one selected branch in a hypothetical causal graph.
+Return exactly the requested number of distinct, concrete consequences that follow directly from the selected node.
+Do not repeat or lightly rephrase any existing consequence title.
+Keep causal explanations explicit and concise. Treat outcomes as conditional possibilities, not forecasts.
+Include plain-language assumptions and qualitative impact and uncertainty labels.
+Avoid detailed instructions for harmful acts. Return JSON only.`
+
 const parseModelGraph = (text: string | undefined): ScenarioGraph => {
   if (!text) {
     throw new AppError(502, 'AI_INVALID_RESPONSE', 'The AI returned an empty response.')
@@ -94,7 +131,7 @@ const parseModelGraph = (text: string | undefined): ScenarioGraph => {
 
 const mapGeminiError = (error: unknown): AppError => {
   if (error instanceof AppError) return error
-  if (error instanceof Error && error.name === 'AbortError') {
+  if (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')) {
     return new AppError(504, 'AI_TIMEOUT', 'The AI request timed out. Please retry.', { cause: error })
   }
   if (error instanceof ApiError && error.status === 429) {
@@ -106,6 +143,33 @@ const mapGeminiError = (error: unknown): AppError => {
     cause: error,
   })
 }
+
+const parseExpansionCandidates = (text: string | undefined) => {
+  if (!text) {
+    throw new AppError(502, 'AI_INVALID_RESPONSE', 'The AI returned an empty response.')
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch (cause) {
+    throw new SyntaxError('The AI response was not valid JSON.', { cause })
+  }
+
+  const wrapper = expansionResponseSchema.safeParse(parsed)
+  if (!wrapper.success) {
+    console.warn(
+      'Gemini expansion validation failed',
+      wrapper.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`),
+    )
+    throw new AppError(502, 'AI_INVALID_RESPONSE', 'The AI returned invalid branch consequences.', {
+      cause: wrapper.error,
+    })
+  }
+  return wrapper.data.consequences
+}
+
+const expansionResponseSchema = z.object({ consequences: expansionCandidatesSchema })
 
 export const analyzeScenario = async (scenario: string): Promise<ScenarioGraph> => {
   const apiKey = process.env.GEMINI_API_KEY
@@ -131,6 +195,43 @@ export const analyzeScenario = async (scenario: string): Promise<ScenarioGraph> 
         },
       })
       return parseModelGraph(response.text)
+    } catch (error) {
+      if (error instanceof SyntaxError && attempt === 0) continue
+      throw mapGeminiError(error)
+    }
+  }
+
+  throw new AppError(502, 'AI_INVALID_RESPONSE', 'The AI returned invalid JSON twice.')
+}
+
+export const expandScenario = async (
+  graph: ScenarioGraph,
+  selectedNodeId: string,
+): Promise<ScenarioGraph> => {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    throw new AppError(503, 'AI_NOT_CONFIGURED', 'The AI service is not configured.')
+  }
+
+  const context = getExpansionContext(graph, selectedNodeId)
+  const ai = new GoogleGenAI({ apiKey })
+  const model = process.env.GEMINI_MODEL || DEFAULT_MODEL
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: `Generate ${context.requestedCount} direct downstream consequences for this branch context:\n${JSON.stringify(context)}`,
+        config: {
+          systemInstruction: expansionSystemInstruction,
+          responseMimeType: 'application/json',
+          responseJsonSchema: expansionResponseJsonSchema,
+          temperature: 0.7,
+          maxOutputTokens: 3_072,
+          abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        },
+      })
+      return mergeExpansion(graph, selectedNodeId, parseExpansionCandidates(response.text))
     } catch (error) {
       if (error instanceof SyntaxError && attempt === 0) continue
       throw mapGeminiError(error)

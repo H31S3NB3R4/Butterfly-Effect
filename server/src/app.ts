@@ -2,16 +2,21 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import { ZodError } from 'zod'
 
 import { AppError } from './errors.js'
-import { analyzeScenario } from './gemini.js'
-import { analyzeInputSchema, type ScenarioGraph } from './schemas.js'
+import { analyzeScenario, expandScenario } from './gemini.js'
+import { scenarioGraphSchema } from './graph-validation.js'
+import { analyzeInputSchema, expandInputSchema, type ScenarioGraph } from './schemas.js'
 
 export type ScenarioAnalyzer = (scenario: string) => Promise<ScenarioGraph>
+export type ScenarioExpander = (graph: ScenarioGraph, selectedNodeId: string) => Promise<ScenarioGraph>
 
-export const createApp = (analyzer: ScenarioAnalyzer = analyzeScenario) => {
+export const createApp = (
+  analyzer: ScenarioAnalyzer = analyzeScenario,
+  expander: ScenarioExpander = expandScenario,
+) => {
   const app = express()
 
   app.disable('x-powered-by')
-  app.use(express.json({ limit: '32kb' }))
+  app.use(express.json({ limit: '128kb' }))
 
   app.get('/api/health', (_request, response) => {
     response.json({ status: 'ok' })
@@ -26,10 +31,20 @@ export const createApp = (analyzer: ScenarioAnalyzer = analyzeScenario) => {
     }
   })
 
+  app.post('/api/expand', async (request, response, next) => {
+    try {
+      const { graph: submittedGraph, selectedNodeId } = expandInputSchema.parse(request.body)
+      const graph = scenarioGraphSchema.parse(submittedGraph)
+      response.json(await expander(graph, selectedNodeId))
+    } catch (error) {
+      next(error)
+    }
+  })
+
   app.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
     if (error instanceof ZodError) {
       response.status(400).json({
-        error: { code: 'INVALID_REQUEST', message: 'Provide a scenario between 1 and 500 characters.' },
+        error: { code: 'INVALID_REQUEST', message: 'The request payload failed validation.' },
       })
       return
     }

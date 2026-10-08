@@ -62,3 +62,34 @@ describe('POST /api/analyze', () => {
     expect(JSON.stringify(response.body)).not.toContain('sensitive')
   })
 })
+
+describe('POST /api/expand', () => {
+  it('passes a validated graph and selection to the expander', async () => {
+    const graph = createValidGraph()
+    let receivedSelection = ''
+    const app = createApp(undefined, async (receivedGraph, selectedNodeId) => {
+      expect(receivedGraph).toEqual(graph)
+      receivedSelection = selectedNodeId
+      return graph
+    })
+
+    const response = await request(app)
+      .post('/api/expand')
+      .send({ graph, selectedNodeId: 'n7' })
+
+    expect(response.status).toBe(200)
+    expect(response.body).toEqual(graph)
+    expect(receivedSelection).toBe('n7')
+  })
+
+  it('rejects an invalid submitted graph before expansion', async () => {
+    const graph = createValidGraph()
+    graph.edges[0].target = 'missing'
+    const response = await request(createApp(undefined, async () => graph))
+      .post('/api/expand')
+      .send({ graph, selectedNodeId: 'n7' })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('INVALID_REQUEST')
+  })
+})
