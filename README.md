@@ -1,140 +1,62 @@
 # 🦋 Butterfly Effect
 
-**One change. Infinite possibilities.**
+**One change. Infinite possibilities.** Enter a hypothetical “What if…?” scenario, explore a Gemini-generated causal graph, inspect assumptions, and expand individual branches. These are conditional thought experiments, **not forecasts or measured probabilities**.
 
-An AI-powered interactive explorer of hypothetical ripple effects. Describe a “What if…?” scenario and explore possible immediate, secondary, and long-term consequences in a connected causal graph.
+## Run locally (Windows PowerShell)
 
-> **Project status:** Planning/scaffolding stage. The codebase will be implemented phase by phase. Commands below describe the **target project structure**, not a claim that the app is already implemented.
->
-> **Important:** Consequences are AI-generated thought experiments, not forecasts, verified facts, or calibrated probability estimates.
+Prerequisites: Node.js 22 or newer, npm, and a Gemini API key with access to a structured-output-capable model and available quota. The verified development environment used Node 22.23.2 and npm 10.9.8.
 
-## Demo concept
-
-**Prompt:** “What if the internet stopped working worldwide for 30 days?”
-
-The app builds a causal graph with distinct branches (communication, business, infrastructure, daily life). Select a node to inspect assumptions and possible impacts, then expand that branch to see further hypothetical consequences.
-
-## Planned MVP features
-
-- Enter your own scenario or choose an example.
-- Generate a real Gemini-powered 3-level causal graph.
-- Explore directional branches in an interactive React Flow canvas.
-- Click a node to read its reasoning, assumptions, impact and uncertainty labels.
-- Expand a selected branch with 2–3 new consequences.
-- Save and reopen scenarios in browser LocalStorage.
-- Graceful loading, empty, and API-error states.
-
-The authoritative scope and acceptance criteria live in [`PRD.md`](./PRD.md). Progress and test gates live in [`TODO.md`](./TODO.md).
-
-## Intended stack
-
-| Area | Technology |
-|---|---|
-| Frontend | Vite, React, TypeScript, Tailwind CSS |
-| Graph | `@xyflow/react` + Dagre |
-| Backend | Node.js, Express, TypeScript |
-| AI | Google Gemini via `@google/genai` |
-| Validation | Zod |
-| Persistence | Browser LocalStorage |
-| Testing | Vitest, TypeScript, ESLint |
-
-## Intended repository structure
-
-```text
-butterfly-effect/
-├── PRD.md
-├── TODO.md
-├── AGENTS.md
-├── README.md
-├── .gitignore                # created during Phase 0
-├── package.json              # root scripts, created during Phase 0
-├── client/                   # created during Phase 0–1
-└── server/                   # created during Phase 0–1
-    └── .env.example          # created during Phase 0
+```powershell
+git clone https://github.com/H31S3NB3R4/Butterfly-Effect.git
+Set-Location Butterfly-Effect
+npm ci
+Copy-Item server/.env.example server/.env
 ```
 
-## Getting started (after scaffolding)
+Edit `server/.env` and set `GEMINI_API_KEY` to your own key. The example selects `gemini-3.5-flash`; `GEMINI_MODEL` can be changed to another model your key can access. Do not commit `server/.env` or put a key in `client/`.
 
-### Prerequisites
-- Node.js LTS (a current supported version; use Node 22+ if the chosen package versions require it).
-- npm.
-- A Google Gemini API key with an available model and sufficient quota.
-- Wispr Flow, if participating in the HackerHouse voice-driven development challenge.
-
-### Set up
-
-After implementing Phase 0 and 1 from `TODO.md`, the intended commands will be:
-
-```bash
-npm install
-```
-
-Create `server/.env` from `server/.env.example` and fill in your credentials:
-
-```dotenv
-GEMINI_API_KEY=your_api_key_here
-GEMINI_MODEL=your_supported_gemini_model
-PORT=3001
-```
-
-**Never commit `server/.env`.** The exact default model will be selected during implementation based on available structured-output support.
-
-Then run:
-
-```bash
+```powershell
 npm run dev
 ```
 
-Open the local URL printed by Vite. The target backend readiness endpoint is `http://localhost:3001/api/health`.
+Open `http://localhost:5173`. Vite proxies `/api` to the Express server at `http://localhost:3001`; `http://localhost:3001/api/health` should return `{"status":"ok"}`. Wait until both startup messages appear before submitting a scenario.
 
-Expected final scripts, once implemented:
+To run the release checks:
 
-```bash
-npm run dev
-npm run build
-npm run typecheck
+```powershell
 npm run lint
+npm run typecheck
 npm run test
+npm run build
 ```
 
-If these scripts don't exist yet, complete the corresponding TODO phase first.
+To run only the built backend: `npm run build -w server` followed by `npm run start -w server`. The frontend can be previewed after a build with `npm run preview -w client`; its `/api` proxy is configured for Vite development, so use the two development servers for a local end-to-end demo.
 
-## APIs (planned)
+## Use the app
 
-| Endpoint | Action |
-|---|---|
-| `GET /api/health` | Check server readiness |
-| `POST /api/analyze` | Produce a structured graph for a scenario |
-| `POST /api/expand` | Return a merged, validated graph with an expanded branch |
+Choose one of the three example scenarios or enter up to 500 characters. Gemini returns one root and 9–15 consequences across three depths. Click a card, or focus it with Tab and press Enter/Space, to inspect its explanation, assumptions, and qualitative impact/uncertainty. Expand a non-root branch to add 2–3 new downstream consequences; the full graph is capped at 35 nodes and depth 5. Use **New scenario** to close the current graph, then **Open** or **Delete** in Recent explorations. Graphs auto-save to this browser's LocalStorage, including expansions.
 
-See [`PRD.md`](./PRD.md) for request/response contracts and validation rules.
+On narrow screens the inspector is a collapsible bottom drawer. The graph supports pan, zoom, fit view, and a desktop MiniMap.
 
-## Suggested build order
+## API
 
-1. **Foundation:** get the frontend and backend running.
-2. **Real AI:** call Gemini and validate a JSON causal graph.
-3. **Visualization:** convert graph data into a usable React Flow canvas.
-4. **Expansion:** generate and merge genuine downstream effects.
-5. **Persistence and polish:** save graphs, refine UX, run tests.
+| Endpoint | Request | Result |
+|---|---|---|
+| `GET /api/health` | None | `{ "status": "ok" }` |
+| `POST /api/analyze` | `{ "scenario": "What if ...?" }` | Validated `ScenarioGraph` |
+| `POST /api/expand` | `{ "graph": ScenarioGraph, "selectedNodeId": "..." }` | Full merged, validated graph |
 
-Do **not** spend days polishing a static graph before building the real API pipeline.
+The server uses the official `@google/genai` SDK, server-side environment variables, structured JSON, Zod validation, and graph-integrity checks. Invalid input returns 400; missing configuration, upstream timeout, rate limit, and unavailable-service responses use a stable JSON `{ "error": { "code", "message" } }` shape. Model output is never accepted as a graph without validation.
 
-## Building with Wispr Flow
+## Known limitations
 
-For HackerHouse Goa 2026, the developer should dictate the entire development workflow using Wispr Flow as required by the challenge: project instructions, implementation requests, debugging, and fixes. Record authentic evidence of that process. Verify the latest rules, account/referral conditions, and submission format with the official organizers.
+- Results are speculative AI-generated possibilities, not verified facts or forecasts. Impact and uncertainty are qualitative labels.
+- Gemini model availability and quota depend on the API account. In the October 2026 QA run, `gemini-2.5-flash` returned a 429 rate limit and `gemini-2.5-flash-lite` returned a 404 stating it was unavailable to new users; `gemini-3.5-flash` generated valid sample graphs. A weaker model may produce JSON that fails strict graph validation; the app rejects it and offers retry.
+- LocalStorage is per browser/device, may be cleared, and can fail under storage restrictions. There is no account sync or cloud database. The 20 most recent saved graphs are retained. JSON export is not implemented.
+- The production client bundle currently triggers Vite's >500 kB chunk warning; the build still succeeds. There is no deployed-host configuration in this repository.
 
-**Starter spoken prompt for your coding assistant:**
+## Wispr Flow shortlisting submission
 
-> Read PRD.md, TODO.md, and AGENTS.md. Implement Phase 0 and Phase 1 only. Set up the Vite React TypeScript client, Express TypeScript server, environment example, root scripts and health route. Run both locally and fix startup issues. Don't build placeholder AI functionality. Report what you verified and update checked items in TODO.md.
+The [official Wispr Flow task](https://docs.google.com/document/d/1VXZ0LyPC39nA5RhF5e0rpCT_hFFfEHj0XReXuu5zhxI/edit?usp=sharing), linked from [HH Goa's task page](https://hhgoa.com/), says the Wispr Flow account **must** be created through [the HHG referral link](https://ref.wisprflow.ai/hhg); otherwise the submission is not counted. It requires an actual voice-driven build process recording, a working project, and a GitHub repository URL. Submit through [the official form](https://forms.gle/Lv9wF8gYVHdEqfJW8) by **October 10, 2026 at 11:59 PM**; the document says no resubmissions. Verify account/referral eligibility and record authentic process evidence before submitting. This repository alone does **not** prove voice-only development or satisfy the video requirement.
 
-## Project principles
-
-- **Functional before flashy:** always prioritize the complete scenario-to-graph journey.
-- **Explain assumptions:** causal graphs are conditional possibilities, not guaranteed predictions.
-- **No secrets on the client:** all Gemini calls go through Express.
-- **Bound complexity:** capped nodes and depths make demos practical.
-- **Be candid:** only mark tested functionality as complete.
-
-## License
-
-License has not been selected. Add a `LICENSE` file before describing the repository as open-source; publicly readable code alone does not grant reuse rights.
+See [PRD.md](./PRD.md) for product scope and [TODO.md](./TODO.md) for test status. A license has not been selected; public visibility does not grant reuse rights.

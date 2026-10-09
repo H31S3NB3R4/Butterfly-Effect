@@ -101,7 +101,7 @@ Keep causal explanations explicit and concise. Treat outcomes as conditional pos
 Include plain-language assumptions and qualitative impact and uncertainty labels.
 Avoid detailed instructions for harmful acts. Return JSON only.`
 
-const parseModelGraph = (text: string | undefined): ScenarioGraph => {
+export const parseModelGraph = (text: string | undefined): ScenarioGraph => {
   if (!text) {
     throw new AppError(502, 'AI_INVALID_RESPONSE', 'The AI returned an empty response.')
   }
@@ -129,7 +129,7 @@ const parseModelGraph = (text: string | undefined): ScenarioGraph => {
   return result.data
 }
 
-const mapGeminiError = (error: unknown): AppError => {
+export const mapGeminiError = (error: unknown): AppError => {
   if (error instanceof AppError) return error
   if (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')) {
     return new AppError(504, 'AI_TIMEOUT', 'The AI request timed out. Please retry.', { cause: error })

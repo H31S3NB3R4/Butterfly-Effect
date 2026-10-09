@@ -73,18 +73,20 @@
 Verified in the browser with a real Gemini response: 12 nodes initially, 15 after expansion, and 15 after refresh and reopening from Recent explorations.
 
 ## Phase 6 — QA and submission readiness
-- [ ] Test all three PRD sample scenarios using real AI responses.
-- [ ] Test blank and too-long scenario input.
-- [ ] Test missing key, network failure, timeout, model rate-limit.
-- [ ] Test invalid JSON, orphan edges, duplicate IDs, and excessive node counts.
-- [ ] Run lint, typecheck, tests, build and resolve failures.
-- [ ] Review browser bundle and Git staging for secrets.
-- [ ] Update README with exact setup commands and known limitations.
+- [x] Test all three PRD sample scenarios using real AI responses.
+- [x] Test blank and too-long scenario input.
+- [x] Test missing key, network failure, timeout, model rate-limit.
+- [x] Test invalid JSON, orphan edges, duplicate IDs, and excessive node counts.
+- [x] Run lint, typecheck, tests, build and resolve failures.
+- [x] Review browser bundle and Git staging for secrets.
+- [x] Update README with exact setup commands and known limitations.
 - [ ] Record the required *real* Wispr Flow building process and final demo.
-- [ ] Check challenge's official current submission instructions and required referral/account details.
-- [ ] Push to GitHub; optionally deploy if time allows.
+- [x] Check challenge's official current submission instructions and required referral/account details.
+- [x] Push to GitHub; optionally deploy if time allows.
 
 **Gate:** End-to-end demo works reliably; required evidence is ready.
+
+QA on 2026-10-09: three live Gemini 3.5 Flash analyses passed (internet 12 nodes/11 edges; universities 12/11 and 15 after expansion; private-car ban 13/12). Blank and 501-character inputs returned HTTP 400 and were blocked in the browser. Error-path and graph-integrity tests passed. The genuine Wispr Flow process recording and account/referral eligibility remain user-owned, so submission readiness is **not** complete. Deployment was not attempted.
 
 ## Don't build for MVP
 - [ ] ~~Authentication / accounts~~
