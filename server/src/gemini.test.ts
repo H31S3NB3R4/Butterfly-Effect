@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, ThinkingLevel, type GenerateContentParameters, type GenerateContentResponse } from '@google/genai'
 
-import { analyzeScenario, expandScenario, mapGeminiError, parseModelGraph } from './gemini.js'
+import { analyzeScenario, expandScenario, mapGeminiError } from './gemini.js'
+import { AppError } from './errors.js'
 import { createValidGraph } from './test-fixtures.js'
 
 const generate = vi.hoisted(() => vi.fn<(params: GenerateContentParameters) => Promise<GenerateContentResponse>>())
@@ -67,19 +68,18 @@ describe('bounded Gemini requests', () => {
     expect(generate.mock.calls[0][0].config?.abortSignal).toBe(generate.mock.calls[1][0].config?.abortSignal)
     expect(generate.mock.calls[0][0].config?.thinkingConfig).toBeUndefined()
   })
+
+  it('retries an invalid model response once within the same deadline', async () => {
+    vi.stubEnv('GEMINI_API_KEY', 'test-key')
+    generate.mockRejectedValue(new AppError(502, 'AI_INVALID_RESPONSE', 'Incomplete consequences'))
+    await expect(analyzeScenario('What if?')).rejects.toMatchObject({ code: 'AI_INVALID_RESPONSE' })
+    expect(generate).toHaveBeenCalledTimes(2)
+    expect(generate.mock.calls[1][0].contents).toContain('previous response was malformed')
+    expect(generate.mock.calls[0][0].config?.abortSignal).toBe(generate.mock.calls[1][0].config?.abortSignal)
+  })
 })
 
 describe('Gemini response and failure handling', () => {
-  it('rejects malformed model JSON instead of returning a graph', () => {
-    expect(() => parseModelGraph('{"nodes":')).toThrow(SyntaxError)
-  })
-
-  it('rejects a structurally invalid model graph', () => {
-    const graph = createValidGraph()
-    graph.edges[0].target = 'missing'
-    expect(() => parseModelGraph(JSON.stringify(graph))).toThrowError('failed validation')
-  })
-
   it('maps an upstream rate limit to a safe retryable response', () => {
     const result = mapGeminiError(new ApiError({ status: 429, message: 'private upstream detail' }))
     expect(result).toMatchObject({ status: 429, code: 'AI_RATE_LIMITED' })

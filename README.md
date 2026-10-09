@@ -15,7 +15,7 @@ Copy-Item server/.env.example server/.env
 
 Edit `server/.env` and set `GEMINI_API_KEY` to your own key. The example selects `gemini-3.5-flash-lite`; `GEMINI_MODEL` can be changed to another model your key can access. Do not commit `server/.env` or put a key in `client/`.
 
-Gemini 3 requests use low thinking effort and concise graph instructions to reduce latency. `GEMINI_TIMEOUT_MS` defaults to `90000` (allowed range: 1000–180000); invalid values fall back to 90000. This is one total deadline, including the optional JSON-format retry. If an existing `.env` pins the slower `gemini-3.5-flash`, change it to `gemini-3.5-flash-lite` and restart `npm run dev`.
+Gemini 3 requests use low thinking effort and concise graph instructions to reduce latency. `GEMINI_TIMEOUT_MS` defaults to `90000` (allowed range: 1000–180000); invalid values fall back to 90000. This is one total deadline, including one optional retry for malformed model output. If an existing `.env` pins the slower `gemini-3.5-flash`, change it to `gemini-3.5-flash-lite` and restart `npm run dev`.
 
 ```powershell
 npm run dev
@@ -49,6 +49,8 @@ On narrow screens the inspector is a collapsible bottom drawer. The graph suppor
 | `POST /api/expand` | `{ "graph": ScenarioGraph, "selectedNodeId": "..." }` | Full merged, validated graph |
 
 The server uses the official `@google/genai` SDK, server-side environment variables, structured JSON, Zod validation, and graph-integrity checks. Invalid input returns 400; missing configuration, upstream timeout, rate limit, and unavailable-service responses use a stable JSON `{ "error": { "code", "message" } }` shape. Model output is never accepted as a graph without validation.
+
+For initial generation, Gemini returns a root and three ordered chains of three consequences, with causal explanations. The server assigns unique node/edge IDs, derives depths and links from chain order, and validates the full graph. The JSON schema sent to Gemini is derived from the same Zod schema used to validate its response, including text lengths and array sizes. Every consequence and explanation remains model-generated; the server supplies only graph bookkeeping.
 
 ## Known limitations
 

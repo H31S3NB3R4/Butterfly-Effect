@@ -28,7 +28,7 @@
 - [x] Write graph-integrity checks: unique IDs, valid endpoints, no self-loops/cycles, reachability, valid depths, size caps.
 - [x] Configure official Gemini SDK in backend with env model selection.
 - [x] Implement prompts for structured 3-level consequence generation.
-- [x] Parse and validate structured model response, retry only for a narrow recoverable formatting error.
+- [x] Parse and validate structured model response with one bounded retry for malformed model output.
 - [x] Implement `POST /api/analyze` and typed error shape.
 - [x] Add input validation, timeout, 429 handling, and missing-key response.
 - [x] Unit-test graph validity logic with valid and invalid fixtures.
@@ -96,6 +96,13 @@ QA on 2026-10-09: three live Gemini 3.5 Flash analyses passed (internet 12 nodes
 - [x] Test cancellation for analysis and expansion, plus the shared deadline for a formatting retry.
 
 The server test command now excludes compiled `dist/` copies. Earlier 56-server-test totals counted source and compiled tests twice. The corrected suite contains 31 server tests and 6 client tests, all passing after this fix.
+
+## Intermittent graph-validation follow-up
+- [x] Generate ordered causal chains and derive IDs, depths, and edges on the server.
+- [x] Derive Gemini's output schema from Zod, including field limits and required branch sizes.
+- [x] Retain final graph-integrity validation and one retry for malformed output within the original deadline.
+- [x] Test preservation of model content and causal order; reject missing branches/steps, invalid labels, oversized titles, and missing explanations.
+- [x] Run five real analyses: exact daily-cola question three times, daily momos, and car ban. All returned HTTP 200 with 10 nodes/9 edges in 3.6–4.9 seconds.
 
 ## Don't build for MVP
 - [ ] ~~Authentication / accounts~~
