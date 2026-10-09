@@ -1,4 +1,4 @@
-import { ApiError, GoogleGenAI } from '@google/genai'
+import { ApiError, GoogleGenAI, ThinkingLevel } from '@google/genai'
 import { z } from 'zod'
 
 import { AppError } from './errors.js'
@@ -6,14 +6,25 @@ import { expansionCandidatesSchema, getExpansionContext, mergeExpansion } from '
 import { analyzedScenarioGraphSchema } from './graph-validation.js'
 import type { ScenarioGraph } from './schemas.js'
 
-const DEFAULT_MODEL = 'gemini-3.5-flash'
-const REQUEST_TIMEOUT_MS = 45_000
+const DEFAULT_MODEL = 'gemini-3.5-flash-lite'
+const timeoutSchema = z.coerce.number().int().min(1_000).max(180_000).catch(90_000)
+
+// Share one deadline across the request and its optional JSON-format retry.
+const requestConfig = (model: string) => ({
+  abortSignal: AbortSignal.timeout(timeoutSchema.parse(process.env.GEMINI_TIMEOUT_MS)),
+  ...(/^gemini-3[.-]/.test(model)
+    ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }
+    : {}),
+})
 
 const systemInstruction = `You create bounded causal graphs for hypothetical thought experiments.
 Describe plausible conditional consequences, never forecasts or certainties.
-Return one root node at depth 0 and 9–15 consequence nodes spanning depths 1, 2, and 3.
+Return exactly 10 nodes: one root at depth 0 and three distinct branches, each with one consequence at depth 1, then depth 2, then depth 3.
+Return exactly 9 edges: root to each depth-1 node, each depth-1 node to its own depth-2 child, and each depth-2 node to its own depth-3 child.
+Never link siblings or skip a depth. Check both endpoints' depth values before writing each edge.
 Every non-root node must be reachable from the root. Every edge must advance exactly one depth.
 Use multiple distinct branches, concise causal explanations, plain-language assumptions, and qualitative impact and uncertainty labels.
+Keep each description and edge explanation to one short sentence, with 1–2 brief assumptions per node.
 Avoid sensational claims and detailed instructions for harmful acts. Return JSON only.`
 
 const responseJsonSchema = {
@@ -99,6 +110,7 @@ Return exactly the requested number of distinct, concrete consequences that foll
 Do not repeat or lightly rephrase any existing consequence title.
 Keep causal explanations explicit and concise. Treat outcomes as conditional possibilities, not forecasts.
 Include plain-language assumptions and qualitative impact and uncertainty labels.
+Keep each description and edge explanation to one short sentence, with 1–2 brief assumptions per node.
 Avoid detailed instructions for harmful acts. Return JSON only.`
 
 export const parseModelGraph = (text: string | undefined): ScenarioGraph => {
@@ -131,6 +143,9 @@ export const parseModelGraph = (text: string | undefined): ScenarioGraph => {
 
 export const mapGeminiError = (error: unknown): AppError => {
   if (error instanceof AppError) return error
+  if (error instanceof SyntaxError) {
+    return new AppError(502, 'AI_INVALID_RESPONSE', 'The AI returned invalid JSON. Please retry.', { cause: error })
+  }
   if (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')) {
     return new AppError(504, 'AI_TIMEOUT', 'The AI request timed out. Please retry.', { cause: error })
   }
@@ -179,6 +194,7 @@ export const analyzeScenario = async (scenario: string): Promise<ScenarioGraph> 
 
   const ai = new GoogleGenAI({ apiKey })
   const model = process.env.GEMINI_MODEL || DEFAULT_MODEL
+  const sharedConfig = requestConfig(model)
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -186,12 +202,11 @@ export const analyzeScenario = async (scenario: string): Promise<ScenarioGraph> 
         model,
         contents: `Build a causal graph for this scenario: ${JSON.stringify(scenario)}`,
         config: {
+          ...sharedConfig,
           systemInstruction,
           responseMimeType: 'application/json',
           responseJsonSchema,
-          temperature: 0.65,
           maxOutputTokens: 8_192,
-          abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         },
       })
       return parseModelGraph(response.text)
@@ -216,6 +231,7 @@ export const expandScenario = async (
   const context = getExpansionContext(graph, selectedNodeId)
   const ai = new GoogleGenAI({ apiKey })
   const model = process.env.GEMINI_MODEL || DEFAULT_MODEL
+  const sharedConfig = requestConfig(model)
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -223,12 +239,11 @@ export const expandScenario = async (
         model,
         contents: `Generate ${context.requestedCount} direct downstream consequences for this branch context:\n${JSON.stringify(context)}`,
         config: {
+          ...sharedConfig,
           systemInstruction: expansionSystemInstruction,
           responseMimeType: 'application/json',
           responseJsonSchema: expansionResponseJsonSchema,
-          temperature: 0.7,
           maxOutputTokens: 3_072,
-          abortSignal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         },
       })
       return mergeExpansion(graph, selectedNodeId, parseExpansionCandidates(response.text))

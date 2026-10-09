@@ -13,7 +13,9 @@ npm ci
 Copy-Item server/.env.example server/.env
 ```
 
-Edit `server/.env` and set `GEMINI_API_KEY` to your own key. The example selects `gemini-3.5-flash`; `GEMINI_MODEL` can be changed to another model your key can access. Do not commit `server/.env` or put a key in `client/`.
+Edit `server/.env` and set `GEMINI_API_KEY` to your own key. The example selects `gemini-3.5-flash-lite`; `GEMINI_MODEL` can be changed to another model your key can access. Do not commit `server/.env` or put a key in `client/`.
+
+Gemini 3 requests use low thinking effort and concise graph instructions to reduce latency. `GEMINI_TIMEOUT_MS` defaults to `90000` (allowed range: 1000–180000); invalid values fall back to 90000. This is one total deadline, including the optional JSON-format retry. If an existing `.env` pins the slower `gemini-3.5-flash`, change it to `gemini-3.5-flash-lite` and restart `npm run dev`.
 
 ```powershell
 npm run dev
@@ -52,6 +54,7 @@ The server uses the official `@google/genai` SDK, server-side environment variab
 
 - Results are speculative AI-generated possibilities, not verified facts or forecasts. Impact and uncertainty are qualitative labels.
 - Gemini model availability and quota depend on the API account. In the October 2026 QA run, `gemini-2.5-flash` returned a 429 rate limit and `gemini-2.5-flash-lite` returned a 404 stating it was unavailable to new users; `gemini-3.5-flash` generated valid sample graphs. A weaker model may produce JSON that fails strict graph validation; the app rejects it and offers retry.
+- A subsequent timeout regression reproduced a 45-second failure for the daily-momos scenario on `gemini-3.5-flash`. The default now uses Flash-Lite with an explicit three-branch, ten-node structure. Both reported food/drink scenarios returned validated graphs in 4.5 seconds during the fix verification. Provider latency can still vary.
 - LocalStorage is per browser/device, may be cleared, and can fail under storage restrictions. There is no account sync or cloud database. The 20 most recent saved graphs are retained. JSON export is not implemented.
 - The production client bundle currently triggers Vite's >500 kB chunk warning; the build still succeeds. There is no deployed-host configuration in this repository.
 

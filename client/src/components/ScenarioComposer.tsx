@@ -77,6 +77,7 @@ export function ScenarioComposer({ loading, error, initialScenario = '', onSubmi
       >
         {loading ? <><span className="loading-orbit" /> Mapping consequences…</> : 'Explore consequences'}
       </button>
+      {loading && <p role="status" className="mt-3 text-sm text-slate-400">Building and checking your graph. Some scenarios take a little longer.</p>}
     </form>
   )
 }

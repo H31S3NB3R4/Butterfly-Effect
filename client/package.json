@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit",
-    "lint": "oxlint",
+    "lint": "oxlint src vite.config.ts",
     "test": "vitest run --passWithNoTests",
     "preview": "vite preview"
   },

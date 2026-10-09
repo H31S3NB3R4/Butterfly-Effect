@@ -88,6 +88,15 @@ Verified in the browser with a real Gemini response: 12 nodes initially, 15 afte
 
 QA on 2026-10-09: three live Gemini 3.5 Flash analyses passed (internet 12 nodes/11 edges; universities 12/11 and 15 after expansion; private-car ban 13/12). Blank and 501-character inputs returned HTTP 400 and were blocked in the browser. Error-path and graph-integrity tests passed. The genuine Wispr Flow process recording and account/referral eligibility remain user-owned, so submission readiness is **not** complete. Deployment was not attempted.
 
+## Timeout regression follow-up
+- [x] Reproduce the daily-momos timeout against real Gemini (HTTP 504 at 45.4 seconds).
+- [x] Use a responsive model and concise three-branch instructions; keep strict graph validation.
+- [x] Verify momos and cola-instead-of-water requests return real graphs (both HTTP 200, 10 nodes/9 edges, 4.5 seconds each).
+- [x] Verify real expansion preserves the initial graph (10 to 13 nodes, 1.7 seconds).
+- [x] Test cancellation for analysis and expansion, plus the shared deadline for a formatting retry.
+
+The server test command now excludes compiled `dist/` copies. Earlier 56-server-test totals counted source and compiled tests twice. The corrected suite contains 31 server tests and 6 client tests, all passing after this fix.
+
 ## Don't build for MVP
 - [ ] ~~Authentication / accounts~~
 - [ ] ~~Complex data science forecasting~~
